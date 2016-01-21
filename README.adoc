@@ -1,4 +1,4 @@
-= Asciidoc Theory of Operation
+= Asciidoctor Theory of Operation
 
 Information about some of the inner workings of Asciidoc,
 written while learning about how to write extensions.
