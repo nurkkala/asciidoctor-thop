@@ -1,4 +1,4 @@
-= Enough Information about Asciidoctor to Write Extensions
+= Asciidoctor Theory of Operation: Enough Stuff to Write an Extension
 Tom Nurkkala <tnurkkala@cse.taylor.edu>
 V0.1, January, 2016
 
