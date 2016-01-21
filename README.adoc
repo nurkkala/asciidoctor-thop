@@ -1,0 +1,30 @@
+== Asciidoc Theory of Operation
+
+Information about some of the inner workings of Asciidoc,
+written while learning about how to write extensions.
+
+=== Publish
+
+The document source is in `thop.adoc`.
+To create an HTML version, run
+....
+asciidoctor -r asciidoctor-diagram -D ./build thop.adoc
+....
+
+=== Develop
+
+To run the processing pipeline:
+
+. Install node modules
+....
+% npm install
+....
+
+[start=2]
+. Run Gulp's default task,
+which will watch for changes to the source file
+and spin up a Browser Sync task
+to display the formatted output as you edit.
+....
+% gulp
+....
