@@ -1,9 +1,9 @@
-== Asciidoc Theory of Operation
+= Asciidoc Theory of Operation
 
 Information about some of the inner workings of Asciidoc,
 written while learning about how to write extensions.
 
-=== Publish
+== Publish
 
 The document source is in `thop.adoc`.
 To create an HTML version, run
@@ -11,7 +11,7 @@ To create an HTML version, run
 asciidoctor -r asciidoctor-diagram -D ./build thop.adoc
 ....
 
-=== Develop
+== Develop
 
 To run the processing pipeline:
 
