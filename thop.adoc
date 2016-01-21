@@ -1,0 +1,156 @@
+= Enough Information about Asciidoctor to Write Extensions
+Tom Nurkkala <tnurkkala@cse.taylor.edu>
+V0.1, January, 2016
+
+== Introduction
+
+These are the key classes in Asciidoctor
+that you should understand in order
+to build extensions.
+
+
+[plantuml, diagram-classes, png]
+.Class Diagram for key Asciidoctor classes
+....
+
+hide empty members
+
+abstract class AbstractNode {
+    attributes: Hash
+    context: Symbol
+    document: Asciidoctor::Document
+    id: String
+    node_name: String
+    parent
+
+    initialize(parent, context, opts)
+    converter()
+    role()
+}
+
+AbstractNode <|-- AbstractBlock
+
+abstract class AbstractBlock {
+    blocks: Array
+    content_model: Symbol
+    style: String
+    subs: Array
+
+    initialize(parent, context, opts)
+    content()
+    convert()
+    find_by(selector, &block)
+}
+
+AbstractBlock <|-- Document
+Document *-- Footnote
+Document *--AttributeEntry
+Document *--Title
+
+class Document {
+    converter: Converter
+    extensions: Array
+    parsed: Boolean
+    reader: Reader
+
+    initialize(data, options)
+    content()
+    convert(opts)
+    parse(data)
+    write(output, target)
+}
+
+AbstractBlock <|-- Block
+
+class Block {
+    initialize(parent, context, opts)
+    content()
+    source()
+}
+
+AbstractBlock <|-- Section
+AbstractBlock <|-- Table
+AbstractBlock <|-- ListItem
+AbstractBlock <|-- List
+
+
+....
+
+
+=== Abstract Node
+
+The `converter()` method is a simple proxy to the converter
+defined on the document object that contains this node.
+
+The abstract node contains attributes for the node.
+A role is stored as an attribute under `attributes['role']`.
+
+Values for `context`
+
+. `:document`
+. `:section`
+
+=== Abstract Block
+
+The `convert()` method invokes the `convert()` method
+of the converter retrieved from the abstract node.
+
+The `content()` method invokes `convert()`
+on all of the children blocks
+and concatenates them into a single string
+(joined with the end-of-line characters).
+
+The `find_by()` method traverse all descendant blocks
+searching for those that match by one or more of:
+
+. context (Symbol)
+. style (String)
+. role (String)
+
+If there's a block provided,
+it's used as an additional filter.
+
+
+==== Instance Variables
+
+`@blocks`:: children of this block
+
+`@content_model`:: Type of content that a block can contain;
+    takes one of the following values:
+    . `:compound` (default) -- block can contain other blocks
+    . `:empty` -- block is empty (audio, image, page break)
+    . `:raw` -- block contains unprocessed content (pass)
+    . `:simple` --
+    . `:verbatim` -- verbatim content (listing, literal)
+
+`@id`:: Block's identifier, also known as an _anchor_, set by `[[\...]]`
+
+`@style`:: Style of the block (??)
+
+`@subs`:: Substitutions applied to the block's content
+
+==== Methods
+
+```
+initialize(parent, content, opts)
+```
+
+`parent`:: Block's parent
+
+`context`:: ?? One of:
+    . `:document`
+    . `:section`
+
+`convert`:: Convert the string content for the block.
+    Also converts the children of the block.
+    Invokes `Converter::convert`
+
+=== Document
+
+[plantuml, diagram-sequence, png]
+....
+Document -> Reader : new(data)
+Reader --> Document: reader
+
+Document -> Parser : parse(reader, self)
+....
