@@ -12,7 +12,6 @@ to build extensions.
 [plantuml, diagram-classes, png]
 .Class Diagram for key Asciidoctor classes
 ....
-
 hide empty members
 
 abstract class AbstractNode {
@@ -63,19 +62,249 @@ class Document {
 AbstractBlock <|-- Block
 
 class Block {
+    lines
+
     initialize(parent, context, opts)
     content()
     source()
 }
 
 AbstractBlock <|-- Section
+
+class Section {
+    index
+    level
+    numbered
+
+    initialize(parent, level, numbered, opts)
+    generate_id()
+    sectnum()
+}
+
 AbstractBlock <|-- Table
 AbstractBlock <|-- ListItem
 AbstractBlock <|-- List
 
+class Reader {
+'    initialize(data, cursor, opts)
+}
+
+Reader <|-- PreprocessorReader
+
+class PreprocessorReader {
+'    initialize(document, data, cursor)
+}
+
+class Parser {
+    parse(reader, document, options)
+    parse_document_header(reader, document)
+    next_section(reader, parent, attributes)
+    next_block(reader, parent, attributes, options)
+}
+note right of Parser : Can't be instantiated
+....
+
+[plantuml, diagram-processors, png]
+.Class Diagram for Processors
+....
+hide empty members
+
+Processor <|-- Preprocessor
+Processor <|-- Treprocessor
+Processor <|-- Postprocessor
+Processor <|-- IncludeProcessor
+Processor <|-- DocinfoProcessor
+Processor <|-- BlockProcessor
+Processor <|-- MacroProcessor
+MacroProcessor <|-- BlockMacroProcessor
+MacroProcessor <|-- InlineMacroProcessor
+
+class Registry {
+    document
+    initialize(groups)
+    -- Document processors --
+    preprocessor(args, &block)
+    preprocessors?()
+    preprocessors()
+    ..
+    Similar for TreeProcessor,
+    PostProcessor, IncludeProcessor,
+    DocInfoProcessor
+    -- Syntax processors --
+    block(args, block)
+    blocks?()
+    registered_for_block?(name, context)
+    find_block_extension(name)
+    ..
+    Similar for BlockMacroProcessor,
+    InlineMacroProcessor
+    -- Private Methods --
+    add_document_processor(kind, args, &block)
+    add_syntax_processor(kind, args, &block)
+}
+....
+
+[plantuml, diagram-converters, png]
+.Class Diagram for Converters
+....
+hide empty members
+class Base
+class BuiltIn {
+    initialize(backend, opts)
+    convert(node, transform, opts)
+    content(node)
+}
+Base <|-- CompositeConverter
+BuiltIn <|-- Html5Converter
+BuiltIn <|-- DocBook5Converter
+BuiltIn <|-- ManPageConverter
+Base <|-- TemplateConverter
+....
+
+[plantuml, diagram-modules, png]
+.Key Asciidoctor Modules
+....
+class Cli << (M, salmon) >> {
+    documents
+
+    initialize(*options)
+    invoke!()
+}
+
+class Asciidoctor << (M, salmon) >> {
+    Many constants
+    Many regular expressions
+    --
+    load(input, options)
+    load_file(filename, options)
+    convert(input, options)
+    convert_file(filename, options)
+}
 
 ....
 
+
+[plantuml, diagram-sequence, png]
+....
+participant Cli << (M, salmon) >>
+participant AD as "Asciidoctor" << (M, salmon) >>
+participant Document
+participant Reader as "PreprocessorReader"
+participant Parser
+participant Converter << (M, salmon) >>
+participant Ext as "Extension"
+
+Cli -> AD : convert(input, options)
+activate AD
+
+    AD -> AD : load(input, options)
+    activate AD
+
+        create Document
+        AD -> Document : (new)
+
+        AD -> Document : initialize(lines, options)
+        activate Document
+
+            create Reader
+            Document -> Reader : (new)
+
+            Document -> Reader : initialize(data)
+            activate Reader
+
+            Document <-- Reader: reader
+            deactivate Reader
+
+        AD <-- Document : document
+        deactivate Document
+
+        AD -> Document : parse()
+        activate Document
+
+            Document -> Ext : process_method()
+            note right : Preprocessor
+            activate Ext
+            Document <-- Ext : reader
+            deactivate Ext
+
+            Document -> Parser : parse(reader, document)
+            activate Parser
+
+                Parser -> Parser : parse_document_header(reader, document)
+
+                Parser -> Parser : next_section(reader, document)
+                activate Parser
+
+                    Parser -> Parser: next_block(reader, parent, attributes, options)
+                    note left : Main entry point
+                    activate Parser
+
+                        Parser -> Ext : process_method()
+                        note right : BlockMacroProcessor
+                        activate Ext
+                        Parser <-- Ext : block
+                        deactivate Ext
+
+                        Parser -> Parser : build_block(...)
+                        activate Parser
+
+                            Parser -> Ext : process_method()
+                            note right : BlockProcessor
+                            activate Ext
+                            Parser <-- Ext : block
+                            deactivate Ext
+
+                        Parser <-- Parser : block
+                        deactivate Parser
+
+                    Parser <-- Parser : block
+                    deactivate Parser
+
+                deactivate Parser
+
+            Document <-- Parser  : document
+            deactivate Parser
+
+            Document -> Ext : process_method()
+            note right : Treeprocessor
+            activate Ext
+            Document <-- Ext : result
+            deactivate Ext
+
+        AD <-- Document : document
+        deactivate Document
+
+    deactivate AD
+
+    AD -> Document : convert(options)
+    activate Document
+
+        Document -> Converter : convert()
+        activate Converter
+        Document <-- Converter : output
+        deactivate Converter
+
+        Document -> Ext : process_method()
+        note right : Postprocessor
+        activate Ext
+        Document <-- Ext : result
+        deactivate Ext
+
+    AD <-- Document : output
+    deactivate Document
+
+    AD -> Document : write(output, outputfile)
+    activate Document
+
+        Document -> Converter: write(output, target)
+        activate Converter
+        deactivate Converter
+
+    deactivate Document
+
+Cli <-- AD : document
+deactivate AD
+....
 
 === Abstract Node
 
@@ -147,10 +376,4 @@ initialize(parent, content, opts)
 
 === Document
 
-[plantuml, diagram-sequence, png]
-....
-Document -> Reader : new(data)
-Reader --> Document: reader
-
-Document -> Parser : parse(reader, self)
-....
+* `input_opts` includes `:to_file` destination.

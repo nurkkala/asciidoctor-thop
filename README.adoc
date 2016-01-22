@@ -1,11 +1,11 @@
 = Asciidoctor Theory of Operation
 
 Information about some of the inner workings of Asciidoc,
-written while learning about how to write extensions.
+written while learning how to write extensions.
 
 == Publish
 
-The document source is in `thop.adoc`.
+The document source is `thop.adoc`.
 To create an HTML version, run
 ....
 asciidoctor -r asciidoctor-diagram -D ./build thop.adoc
