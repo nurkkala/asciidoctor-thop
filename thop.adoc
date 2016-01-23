@@ -186,8 +186,8 @@ class Asciidoctor << (M, salmon) >> {
 
 [plantuml, diagram-sequence, png]
 ....
-participant Cli << (M, salmon) >>
-participant AD as "Asciidoctor" << (M, salmon) >>
+participant Cli
+participant AD as "Asciidoctor"
 participant Document
 participant Reader as "Preprocessor\nReader"
 participant Parser
