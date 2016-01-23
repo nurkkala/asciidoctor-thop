@@ -189,12 +189,13 @@ class Asciidoctor << (M, salmon) >> {
 participant Cli << (M, salmon) >>
 participant AD as "Asciidoctor" << (M, salmon) >>
 participant Document
-participant Reader as "PreprocessorReader"
+participant Reader as "Preprocessor\nReader"
 participant Parser
-participant Converter << (M, salmon) >>
 participant Ext as "Extension"
+participant CF as "Converter\nFactory"
+participant H5C as "HTML5\nConverter"
 
-Cli -> AD : convert(input, options)
+Cli -> AD : convert(input, input_opts)
 activate AD
 
     AD -> AD : load(input, options)
@@ -205,6 +206,35 @@ activate AD
 
         AD -> Document : initialize(lines, options)
         activate Document
+
+            Document -> Document : update_backend_attributes()
+            activate Document
+
+                Document->Document : create_converter()
+                activate Document
+
+                    Document->CF : default()
+                    activate CF
+                    Document<--CF : converter_factory
+                    deactivate CF
+
+                    Document->CF : create()
+                    activate CF
+
+                        create H5C
+                        CF->H5C : (new)
+
+                        CF->H5C : initialize(backend, opts)
+                        activate H5C
+
+                        CF<--H5C : base_converter
+                        deactivate H5C
+
+                    Document<--CF : converter
+                    deactivate CF
+
+                deactivate Document
+            deactivate Document
 
             create Reader
             Document -> Reader : (new)
@@ -279,10 +309,32 @@ activate AD
     AD -> Document : convert(options)
     activate Document
 
-        Document -> Converter : convert()
-        activate Converter
-        Document <-- Converter : output
-        deactivate Converter
+        Document -> H5C : convert()
+        activate H5C
+
+            H5C -> H5C : document(node)
+            activate H5C
+
+                H5C -> H5C : content()
+                note left : Map over child blocks
+                activate H5C
+
+                    H5C -> H5C : convert()
+                    activate H5C
+                    note left
+                        Invoke the converter method
+                        whose name matches the context
+                        of the current AbstractBlock
+                        (e.g., section, paragraph)
+                    end note
+                    deactivate H5C
+
+                deactivate H5C
+
+            deactivate H5C
+
+        Document <-- H5C : output
+        deactivate H5C
 
         Document -> Ext : process_method()
         note right : Postprocessor
@@ -295,11 +347,6 @@ activate AD
 
     AD -> Document : write(output, outputfile)
     activate Document
-
-        Document -> Converter: write(output, target)
-        activate Converter
-        deactivate Converter
-
     deactivate Document
 
 Cli <-- AD : document
